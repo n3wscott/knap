@@ -1,0 +1,11 @@
+[[override]]
+  name = "github.com/knative/pkg"
+  revision = "0f749ef7d5e65aba4e8a76aa34b4744685981a91"
+
+[[override]]
+  name = "github.com/knative/eventing"
+  revision = "4a780ee967ce18719d5e9fedaffd80512df123b6"
+
+[prune]
+  go-tests = true
+  unused-packages = true
