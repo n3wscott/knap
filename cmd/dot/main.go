@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/n3wscott/knap/pkg/config"
-	"github.com/n3wscott/knap/pkg/eventing"
+	"github.com/n3wscott/knap/pkg/knative"
 	"k8s.io/client-go/dynamic"
 
 	"log"
@@ -24,7 +24,7 @@ func main() {
 
 	ns := "default"
 
-	c := eventing.New(dynamicClient)
+	c := knative.New(dynamicClient)
 
 	for _, t := range c.Triggers(ns) {
 		if len(t.ObjectMeta.OwnerReferences) > 0 {
@@ -87,6 +87,16 @@ func main() {
 			*/
 			//log.Printf("Source : %s %s %s", t.APIVersion, t.Kind, t.Name)
 			log.Printf("%s %s %s", t.Name, t.GroupVersionKind().String(), *t.Status.SinkURI)
+		}
+	}
+
+	for _, t := range c.KnServices(ns) {
+		if len(t.ObjectMeta.OwnerReferences) > 0 {
+			for _, o := range t.ObjectMeta.OwnerReferences {
+				log.Printf("%s %s - owned by %s %s %s", t.Kind, t.Name, o.Name, o.Kind, o.APIVersion)
+			}
+		} else {
+			log.Printf("%s %s", t.Kind, t.Name)
 		}
 	}
 }

@@ -3,6 +3,7 @@ package graph
 import (
 	"fmt"
 	eventingv1alpha1 "github.com/knative/eventing/pkg/apis/eventing/v1alpha1"
+	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	duckv1alpha1 "github.com/n3wscott/knap/pkg/apis/duck/v1alpha1"
 	"github.com/tmc/dot"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -97,7 +98,7 @@ func (g *Graph) AddTrigger(trigger eventingv1alpha1.Trigger) {
 	}
 
 	tn := dot.NewNode("Trigger " + trigger.Name)
-	tn.Set("shape", "box")
+	_ = tn.Set("shape", "box")
 
 	if sg, ok := g.subgraphs[bk]; ok {
 		sg.AddNode(tn)
@@ -105,10 +106,6 @@ func (g *Graph) AddTrigger(trigger eventingv1alpha1.Trigger) {
 		g.AddNode(tn)
 	}
 	g.nodes[triggerKey(trigger.Name)] = tn
-
-	//e := dot.NewEdge(bn, tn)
-	//_ = e.Set("dir", "none") // "forward" "back" "both" "none"
-	//g.AddEdge(e)
 
 	if trigger.Spec.Filter != nil && trigger.Spec.Filter.SourceAndType != nil {
 		label := fmt.Sprintf("Source:%s\nType:%s",
@@ -119,36 +116,45 @@ func (g *Graph) AddTrigger(trigger eventingv1alpha1.Trigger) {
 	}
 
 	if trigger.Spec.Subscriber != nil {
-		key := ""
-		subscriber := "?"
-
-		if trigger.Spec.Subscriber.DNSName != nil {
-			subscriber = *trigger.Spec.Subscriber.DNSName
-			key = uriKey(*trigger.Spec.Subscriber.DNSName)
-		} else if trigger.Spec.Subscriber.Ref != nil {
-			subscriber = fmt.Sprintf("%s\nKind: %s\n%s",
-				trigger.Spec.Subscriber.Ref.Name,
-				trigger.Spec.Subscriber.Ref.Kind,
-				trigger.Spec.Subscriber.Ref.APIVersion,
-			)
-			key = refKey(
-				trigger.Spec.Subscriber.Ref.APIVersion,
-				trigger.Spec.Subscriber.Ref.Kind,
-				trigger.Spec.Subscriber.Ref.Name,
-			)
-		}
-		var sub *dot.Node
-		var ok bool
-		if sub, ok = g.nodes[key]; !ok {
-			sub = dot.NewNode("Subscriber " + subscriber)
-			g.nodes[key] = sub
-			g.AddNode(sub)
-		}
-
+		sub := g.getOrCreateSubscriber(trigger.Spec.Subscriber)
 		e := dot.NewEdge(tn, sub)
-
 		g.AddEdge(e)
 	}
+}
+
+func (g *Graph) AddKnService(service servingv1alpha1.Service) {
+
+}
+
+func (g *Graph) getOrCreateSubscriber(subscriber *eventingv1alpha1.SubscriberSpec) *dot.Node {
+	key := "?"
+	label := "?"
+
+	if subscriber != nil {
+		if subscriber.DNSName != nil {
+			label = *subscriber.DNSName
+			key = uriKey(*subscriber.DNSName)
+		} else if subscriber.Ref != nil {
+			label = fmt.Sprintf("%s\nKind: %s\n%s",
+				subscriber.Ref.Name,
+				subscriber.Ref.Kind,
+				subscriber.Ref.APIVersion,
+			)
+			key = refKey(
+				subscriber.Ref.APIVersion,
+				subscriber.Ref.Kind,
+				subscriber.Ref.Name,
+			)
+		}
+	}
+	var sub *dot.Node
+	var ok bool
+	if sub, ok = g.nodes[key]; !ok {
+		sub = dot.NewNode("Subscriber " + label)
+		g.nodes[key] = sub
+		g.AddNode(sub)
+	}
+	return sub
 }
 
 func sinkDNS(source duckv1alpha1.SourceType) string {

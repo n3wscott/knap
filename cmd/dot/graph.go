@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/n3wscott/knap/pkg/config"
-	"github.com/n3wscott/knap/pkg/eventing"
 	"github.com/n3wscott/knap/pkg/graph"
+	"github.com/n3wscott/knap/pkg/knative"
 	"k8s.io/client-go/dynamic"
 	"log"
 	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
