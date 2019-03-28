@@ -32,6 +32,8 @@ func (c *Client) SourceCRDs() []apiextensions.CustomResourceDefinition {
 		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, obj); err != nil {
 			log.Fatalf("Error DefaultUnstructuree.Dynamiconverter. %v", err)
 		}
+		obj.ResourceVersion = gvr.Version
+		obj.APIVersion = gvr.GroupVersion().String()
 		all[i] = *obj
 	}
 	return all

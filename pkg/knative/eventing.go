@@ -61,6 +61,8 @@ func (c *Client) Triggers(namespace string) []eventingv1alpha1.Trigger {
 		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, obj); err != nil {
 			log.Fatalf("Error DefaultUnstructuree.Dynamiconverter. %v", err)
 		}
+		obj.ResourceVersion = gvr.Version
+		obj.APIVersion = gvr.GroupVersion().String()
 		all[i] = *obj
 	}
 	return all
@@ -86,6 +88,8 @@ func (c *Client) Brokers(namespace string) []eventingv1alpha1.Broker {
 		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, obj); err != nil {
 			log.Fatalf("Error DefaultUnstructuree.Dynamiconverter. %v", err)
 		}
+		obj.ResourceVersion = gvr.Version
+		obj.APIVersion = gvr.GroupVersion().String()
 		all[i] = *obj
 	}
 	return all
@@ -111,6 +115,8 @@ func (c *Client) Channels(namespace string) []eventingv1alpha1.Channel {
 		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, obj); err != nil {
 			log.Fatalf("Error DefaultUnstructuree.Dynamiconverter. %v", err)
 		}
+		obj.ResourceVersion = gvr.Version
+		obj.APIVersion = gvr.GroupVersion().String()
 		all[i] = *obj
 	}
 	return all
@@ -136,6 +142,8 @@ func (c *Client) Subscriptions(namespace string) []eventingv1alpha1.Subscription
 		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, obj); err != nil {
 			log.Fatalf("Error DefaultUnstructuree.Dynamiconverter. %v", err)
 		}
+		obj.ResourceVersion = gvr.Version
+		obj.APIVersion = gvr.GroupVersion().String()
 		all[i] = *obj
 	}
 	return all

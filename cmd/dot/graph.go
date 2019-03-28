@@ -29,7 +29,7 @@ func main() {
 
 	ns := "default"
 
-	c := eventing.New(dynamicClient)
+	c := knative.New(dynamicClient)
 
 	g := graph.New(ns)
 
@@ -46,6 +46,11 @@ func main() {
 	// load the triggers
 	for _, trigger := range c.Triggers(ns) {
 		g.AddTrigger(trigger)
+	}
+
+	// load the services
+	for _, service := range c.KnServices(ns) {
+		g.AddKnService(service)
 	}
 
 	fmt.Print(g.String())

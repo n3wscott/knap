@@ -123,7 +123,74 @@ func (g *Graph) AddTrigger(trigger eventingv1alpha1.Trigger) {
 }
 
 func (g *Graph) AddKnService(service servingv1alpha1.Service) {
+	/*
+	   spec:
+	     runLatest:
+	       configuration:
+	         revisionTemplate:
+	           metadata:
+	             creationTimestamp: null
+	           spec:
+	             container:
+	               env:
+	               - name: TARGET
+	                 value: http://default-broker.default.svc.cluster.local/
+	*/
 
+	var config servingv1alpha1.ConfigurationSpec
+	if service.Spec.RunLatest != nil {
+		config = service.Spec.RunLatest.Configuration
+	} else if service.Spec.Release != nil {
+		config = service.Spec.Release.Configuration
+	} else {
+		// nope out.
+		return
+	}
+	_ = config
+
+	key := servingKey(service.Kind, service.Name)
+
+	var svc *dot.Node
+	var ok bool
+	label := ""
+	if svc, ok = g.nodes[key]; !ok {
+		label = fmt.Sprintf("%s\nKind: %s\n%s",
+			service.Name,
+			service.Kind,
+			service.APIVersion,
+		)
+		svc = dot.NewNode(label)
+		g.nodes[key] = svc
+		g.AddNode(svc)
+	}
+
+	for _, env := range config.RevisionTemplate.Spec.Container.Env {
+		switch env.Name {
+		case "SINK":
+			fallthrough
+		case "TARGET":
+			// Assume full dns name.
+			target := g.getOrCreateSink(env.Value)
+			e := dot.NewEdge(svc, target)
+			g.AddEdge(e)
+		}
+	}
+
+}
+
+func (g *Graph) getOrCreateSink(uri string) *dot.Node {
+	if !strings.HasSuffix(uri, "/") {
+		uri += "/"
+	}
+
+	var node *dot.Node
+	var key string
+	var ok bool
+	if key, ok = g.dnsToKey[uri]; !ok {
+		node = dot.NewNode("UnknownSink " + uri)
+		g.AddNode(node)
+	}
+	return g.nodes[key]
 }
 
 func (g *Graph) getOrCreateSubscriber(subscriber *eventingv1alpha1.SubscriberSpec) *dot.Node {
@@ -150,7 +217,7 @@ func (g *Graph) getOrCreateSubscriber(subscriber *eventingv1alpha1.SubscriberSpe
 	var sub *dot.Node
 	var ok bool
 	if sub, ok = g.nodes[key]; !ok {
-		sub = dot.NewNode("Subscriber " + label)
+		sub = dot.NewNode(label)
 		g.nodes[key] = sub
 		g.AddNode(sub)
 	}
@@ -198,6 +265,10 @@ func refKey(apiVersion, kind, name string) string {
 
 func eventingKey(kind, name string) string {
 	return key("eventing.knative.dev", "v1alpha1", kind, name)
+}
+
+func servingKey(kind, name string) string {
+	return key("serving.knative.dev", "v1alpha1", kind, name)
 }
 
 func triggerKey(name string) string {

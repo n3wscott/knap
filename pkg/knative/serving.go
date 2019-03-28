@@ -30,6 +30,8 @@ func (c *Client) KnServices(namespace string) []servingv1alpha1.Service {
 		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, obj); err != nil {
 			log.Fatalf("Error DefaultUnstructuree.Dynamiconverter. %v", err)
 		}
+		obj.ResourceVersion = gvr.Version
+		obj.APIVersion = gvr.GroupVersion().String()
 		all[i] = *obj
 	}
 	return all
