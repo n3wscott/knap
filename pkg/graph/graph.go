@@ -153,13 +153,21 @@ func (g *Graph) AddTrigger(trigger eventingv1alpha1.Trigger) {
 
 func sinkDNS(source duckv1alpha1.SourceType) string {
 	if source.Status.SinkURI != nil {
-		return fmt.Sprintf("%s/", *(source.Status.SinkURI))
+		uri := *(source.Status.SinkURI)
+		if !strings.HasSuffix(uri, "/") {
+			uri += "/"
+		}
+		return uri
 	}
 	return ""
 }
 
 func brokerDNS(broker eventingv1alpha1.Broker) string {
-	return fmt.Sprintf("http://%s/", broker.Status.Address.Hostname)
+	uri := fmt.Sprintf("http://%s", broker.Status.Address.Hostname)
+	if !strings.HasSuffix(uri, "/") {
+		uri += "/"
+	}
+	return uri
 }
 
 func brokerKey(name string) string {
