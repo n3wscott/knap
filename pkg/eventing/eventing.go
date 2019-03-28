@@ -12,6 +12,7 @@ import (
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 
 	eventingv1alpha1 "github.com/knative/eventing/pkg/apis/eventing/v1alpha1"
+	duckv1alpha1 "github.com/n3wscott/knap/pkg/apis/duck/v1alpha1"
 )
 
 func New(dc dynamic.Interface) *Client {
@@ -71,25 +72,20 @@ func crdsToGVR(crds []apiextensions.CustomResourceDefinition) []schema.GroupVers
 	return gvrs
 }
 
-func (c *Client) Sources(namespace string) []Source {
+func (c *Client) Sources(namespace string) []duckv1alpha1.Source {
 
 	gvrs := crdsToGVR(c.SourceCRDs())
 
 	for _, gvr := range gvrs {
 
-		gvr := schema.GroupVersionResource{
-			Group:    "eventing.knative.dev",
-			Version:  "v1alpha1",
-			Resource: "triggers",
-		}
-		like := eventingv1alpha1.Trigger{}
+		like := duckv1alpha1.Source{}
 
 		list, err := c.dc.Resource(gvr).Namespace(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			log.Fatalf("Failed to List Triggers, %v", err)
 		}
 
-		all := make([]eventingv1alpha1.Trigger, len(list.Items))
+		all := make([]duckv1alpha1.Source, len(list.Items))
 
 		for i, item := range list.Items {
 			obj := like.DeepCopy()

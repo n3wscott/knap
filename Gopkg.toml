@@ -1,3 +1,30 @@
+required = [
+  "k8s.io/apimachinery/pkg/util/sets/types",
+  "k8s.io/code-generator/cmd/deepcopy-gen",
+  "k8s.io/code-generator/cmd/defaulter-gen",
+  "k8s.io/code-generator/cmd/client-gen",
+  "k8s.io/code-generator/cmd/lister-gen",
+  "k8s.io/code-generator/cmd/informer-gen",
+  "github.com/knative/test-infra/scripts",
+  "github.com/knative/test-infra/tools/dep-collector",
+  "github.com/knative/build/pkg/apis/build/v1alpha1",
+]
+
+[prune]
+  go-tests = true
+  unused-packages = true
+  non-go = true
+
+[[prune.project]]
+  name = "k8s.io/code-generator"
+  unused-packages = false
+  non-go = false
+
+[[prune.project]]
+  name = "github.com/knative/test-infra"
+  non-go = false
+
+
 [[override]]
   name = "github.com/knative/pkg"
   revision = "0f749ef7d5e65aba4e8a76aa34b4744685981a91"
@@ -5,7 +32,3 @@
 [[override]]
   name = "github.com/knative/eventing"
   revision = "4a780ee967ce18719d5e9fedaffd80512df123b6"
-
-[prune]
-  go-tests = true
-  unused-packages = true
