@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 
 	eventingv1alpha1 "github.com/knative/eventing/pkg/apis/eventing/v1alpha1"
 	duckv1alpha1 "github.com/n3wscott/knap/pkg/apis/duck/v1alpha1"
@@ -72,27 +72,30 @@ func crdsToGVR(crds []apiextensions.CustomResourceDefinition) []schema.GroupVers
 	return gvrs
 }
 
-func (c *Client) Sources(namespace string) []duckv1alpha1.Source {
+func (c *Client) Sources(namespace string) []duckv1alpha1.SourceType {
 
 	gvrs := crdsToGVR(c.SourceCRDs())
 
+	all := make([]duckv1alpha1.SourceType, 0)
+
 	for _, gvr := range gvrs {
 
-		like := duckv1alpha1.Source{}
+		like := duckv1alpha1.SourceType{}
 
 		list, err := c.dc.Resource(gvr).Namespace(namespace).List(metav1.ListOptions{})
 		if err != nil {
-			log.Fatalf("Failed to List Triggers, %v", err)
+			log.Printf("Failed to List %s, %v", gvr.String(), err)
+			continue
 		}
 
-		all := make([]duckv1alpha1.Source, len(list.Items))
-
-		for i, item := range list.Items {
+		for _, item := range list.Items {
 			obj := like.DeepCopy()
 			if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, obj); err != nil {
-				log.Fatalf("Error DefaultUnstructuree.Dynamiconverter. %v", err)
+				log.Fatalf("Error DefaultUnstructuredConverter.FromUnstructured. %v", err)
 			}
-			all[i] = *obj
+			obj.ResourceVersion = gvr.Version
+			obj.APIVersion = gvr.GroupVersion().String()
+			all = append(all, *obj)
 		}
 	}
 	return all

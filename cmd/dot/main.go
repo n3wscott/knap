@@ -66,7 +66,7 @@ func main() {
 		}
 	}
 
-	for _, t := range c.SourceCRDs() {
+	for _, t := range c.Sources("default") {
 		if len(t.ObjectMeta.OwnerReferences) > 0 {
 			for _, o := range t.ObjectMeta.OwnerReferences {
 				log.Printf("%s %s - owned by %s %s %s", t.Kind, t.Name, o.Name, o.Kind, o.APIVersion)
@@ -85,8 +85,8 @@ func main() {
 				plural: containersources
 				singular: containersource
 			*/
-
-			log.Printf("%s %s (%s) %s", t.Spec.Group, t.Spec.Names.Kind, t.Spec.Names.Plural, t.Spec.Version)
+			//log.Printf("Source : %s %s %s", t.APIVersion, t.Kind, t.Name)
+			log.Printf("%s %s %s", t.Name, t.GroupVersionKind().String(), *t.Status.SinkURI)
 		}
 	}
 }
