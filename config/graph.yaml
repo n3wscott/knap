@@ -1,13 +1,43 @@
-apiVersion: serving.knative.dev/v1alpha1
-kind: Service
+
+# Can't use a service because there is no way to get out of istio.
+#
+#apiVersion: serving.knative.dev/v1alpha1
+#kind: Service
+#metadata:
+#  name: knap-graph
+#  labels:
+#    knative.dev/type: "function"
+#spec:
+#  runLatest:
+#    configuration:
+#      revisionTemplate:
+#        spec:
+#          serviceAccountName: knap
+#          container:
+#            image: github.com/n3wscott/knap/cmd/graph/
+#
+
+apiVersion: extensions/v1beta1
+kind: Deployment
 metadata:
   name: knap-graph
-  labels:
-    knative.dev/type: "function"
 spec:
-  runLatest:
-    configuration:
-      revisionTemplate:
-        spec:
-          container:
-            image: github.com/n3wscott/knap/cmd/graph/
+  replicas: 1
+  selector:
+    matchLabels:
+      app: knap-graph
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        app: knap-graph
+    spec:
+      serviceAccountName: knap
+      containers:
+        - image: github.com/n3wscott/knap/cmd/graph/
+          imagePullPolicy: IfNotPresent
+          name: knap
+
+
+# kubectl expose deployment knap-graph --type=LoadBalancer --name=knap-graph  --port=80 --target-port=8080

@@ -1,6 +1,5 @@
 package knative
 
-import "C"
 import (
 	"k8s.io/client-go/dynamic"
 )

@@ -8,6 +8,8 @@ import (
 	"github.com/n3wscott/knap/pkg/config"
 	"github.com/n3wscott/knap/pkg/graph"
 	"html/template"
+	"image"
+	"image/jpeg"
 	"io/ioutil"
 	"k8s.io/client-go/dynamic"
 	"log"
@@ -18,6 +20,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+
 	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
@@ -37,7 +40,7 @@ func init() {
 	}
 
 	flag.StringVar(&kubeconfig, "kubeconfig", defaultKubeconfig,
-		"Provide the path to the `kubeconfig` file you'd like to use for these tests. The `current-context` will be used.")
+		"Provide the path to the `kubeconfig` file.")
 }
 
 var client dynamic.Interface
@@ -53,10 +56,22 @@ func main() {
 
 	client = dynamic.NewForConfigOrDie(cfg)
 
+	http.HandleFunc("/favicon.ico", favicon)
 	http.HandleFunc("/", handler)
 
 	log.Println("Listening on 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func favicon(w http.ResponseWriter, r *http.Request) {
+	img := image.NewRGBA(image.Rect(0, 0, 64, 64))
+
+	buffer := new(bytes.Buffer)
+	if err := jpeg.Encode(buffer, img, nil); err != nil {
+		log.Println("unable to encode image.")
+	}
+
+	writeBytes(w, buffer.Bytes(), "jpg")
 }
 
 func getQueryParam(r *http.Request, key string) string {
@@ -71,7 +86,6 @@ var defaultPage = "html"  // or img
 var defaultFormat = "svg" // or png
 
 func handler(w http.ResponseWriter, r *http.Request) {
-
 	page := getQueryParam(r, "page")
 	if page == "" {
 		page = defaultPage
@@ -89,7 +103,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("dotToImage error %s", err)
 		return
 	}
-	log.Printf("dotToImage image %s", file)
 	img, err := ioutil.ReadFile(file)
 
 	defer os.Remove(file) // clean up
@@ -121,7 +134,6 @@ func dotToImage(format string, b []byte) (string, error) {
 	if err := cmd.Run(); err != nil {
 		return "", err
 	}
-	log.Printf("done. wrote to  %s", img)
 	return img, nil
 }
 

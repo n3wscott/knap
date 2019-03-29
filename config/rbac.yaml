@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: knap
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: knap
+rules:
+  # Sources read
+  - apiGroups:
+      - sources.eventing.knative.dev
+    resources: ['*']
+    verbs: &readOnly
+      - get
+      - list
+      - watch
+
+  # Eventing read
+  - apiGroups:
+      - eventing.knative.dev
+    resources: ['*']
+    verbs: *readOnly
+
+  # Serving read
+  - apiGroups:
+      - serving.knative.dev
+    resources:
+      - services
+    verbs: *readOnly
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: knap
+rules:
+  # API Extensions read
+  - apiGroups:
+      -  apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs: &readOnly
+      - get
+      - list
+      - watch
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: knap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: knap
+subjects:
+  - kind: ServiceAccount
+    name: knap
+    namespace: default
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: knap
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: knap
+subjects:
+  - kind: ServiceAccount
+    name: knap
+    namespace: default

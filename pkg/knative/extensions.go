@@ -1,6 +1,5 @@
 package knative
 
-import "C"
 import (
 	"log"
 
