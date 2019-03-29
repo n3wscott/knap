@@ -3,24 +3,60 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"flag"
 	"fmt"
+	"github.com/n3wscott/knap/pkg/config"
+	"github.com/n3wscott/knap/pkg/graph"
 	"html/template"
 	"io/ioutil"
+	"k8s.io/client-go/dynamic"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
+	"path"
 	"path/filepath"
 	"strconv"
+	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
-func main() {
-	http.HandleFunc("/", handler)
-	log.Println("Listening on 8080")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe:", err)
+var (
+	cluster    string
+	kubeconfig string
+)
+
+func init() {
+	flag.StringVar(&cluster, "cluster", "",
+		"Provide the cluster to test against. Defaults to the current cluster in kubeconfig.")
+
+	var defaultKubeconfig string
+	if usr, err := user.Current(); err == nil {
+		defaultKubeconfig = path.Join(usr.HomeDir, ".kube/config")
 	}
+
+	flag.StringVar(&kubeconfig, "kubeconfig", defaultKubeconfig,
+		"Provide the path to the `kubeconfig` file you'd like to use for these tests. The `current-context` will be used.")
+}
+
+var client dynamic.Interface
+var ns = "default"
+
+func main() {
+	flag.Parse()
+
+	cfg, err := config.BuildClientConfig(kubeconfig, cluster)
+	if err != nil {
+		log.Fatalf("Error building kubeconfig", err)
+	}
+
+	client = dynamic.NewForConfigOrDie(cfg)
+
+	http.HandleFunc("/", handler)
+
+	log.Println("Listening on 8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func getQueryParam(r *http.Request, key string) string {
@@ -31,34 +67,24 @@ func getQueryParam(r *http.Request, key string) string {
 	return keys[0]
 }
 
-var defaultFormat = "png"
+var defaultPage = "html"  // or img
+var defaultFormat = "svg" // or png
 
 func handler(w http.ResponseWriter, r *http.Request) {
 
 	page := getQueryParam(r, "page")
+	if page == "" {
+		page = defaultPage
+	}
 
 	format := getQueryParam(r, "format")
-
 	if format == "" {
 		format = defaultFormat
 	}
 
-	//var img image.Image
+	dotGraph := graph.ForTriggers(client, ns)
 
-	// /user/bin/dot
-
-	graph := `
-graph {
-    a -- b;
-    b -- c;
-    a -- c;
-    d -- c;
-    e -- c;
-    e -- a;
-}
-  `
-
-	file, err := dotToImage(format, []byte(graph))
+	file, err := dotToImage(format, []byte(dotGraph))
 	if err != nil {
 		log.Printf("dotToImage error %s", err)
 		return
@@ -66,31 +92,36 @@ graph {
 	log.Printf("dotToImage image %s", file)
 	img, err := ioutil.ReadFile(file)
 
+	defer os.Remove(file) // clean up
+
 	if page == "html" {
 		writeBytesWithTemplate(w, img, format)
 	} else {
 		writeBytes(w, img, format)
 	}
+
 }
 
-var dotExe string
+var dot string
 
-func dotToImage(format string, dot []byte) (string, error) {
-	if dotExe == "" {
-		dot, err := exec.LookPath("dot")
+func dotToImage(format string, b []byte) (string, error) {
+
+	if dot == "" {
+		var err error
+		dot, err = exec.LookPath("dot")
 		if err != nil {
 			log.Fatalln("unable to find program 'dot', please install it or check your PATH")
 		}
-		dotExe = dot
 	}
 
 	var img = filepath.Join(os.TempDir(), fmt.Sprintf("graph.%s", format))
 
-	cmd := exec.Command(dotExe, fmt.Sprintf("-T%s", format), "-o", img)
-	cmd.Stdin = bytes.NewReader(dot)
+	cmd := exec.Command(dot, fmt.Sprintf("-T%s", format), "-o", img) //, tmpfile.Name())
+	cmd.Stdin = bytes.NewBuffer(b)
 	if err := cmd.Run(); err != nil {
 		return "", err
 	}
+	log.Printf("done. wrote to  %s", img)
 	return img, nil
 }
 
@@ -99,18 +130,16 @@ var Template = `<!DOCTYPE html>
 <body><img src="data:{{.Format}},{{.Image}}"></body>`
 
 func writeBytesWithTemplate(w http.ResponseWriter, b []byte, format string) {
-	var data map[string]interface{}
-
 	if format == "svg" {
-		data = map[string]interface{}{
-			"Image":  string(b),
-			"Format": fmt.Sprintf("image/%s+xml;utf8", format),
-		}
-	} else {
-		data = map[string]interface{}{
-			"Image":  base64.StdEncoding.EncodeToString(b),
-			"Format": fmt.Sprintf("image/%s;base64", format),
-		}
+		_, _ = w.Write([]byte(`<!DOCTYPE html><html lang="en"><head></head><body>`))
+		_, _ = w.Write(b)
+		_, _ = w.Write([]byte(`</body></html>`))
+		return
+	}
+
+	data := map[string]interface{}{
+		"Image":  base64.StdEncoding.EncodeToString(b),
+		"Format": fmt.Sprintf("image/%s;base64", format),
 	}
 	if tmpl, err := template.New("image").Parse(Template); err != nil {
 		log.Println("unable to parse image template.")
