@@ -3,6 +3,7 @@ package graph
 import (
 	"fmt"
 	eventingv1alpha1 "github.com/knative/eventing/pkg/apis/eventing/v1alpha1"
+	knduckv1alpha1 "github.com/knative/pkg/apis/duck/v1alpha1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	duckv1alpha1 "github.com/n3wscott/knap/pkg/apis/duck/v1alpha1"
 	"github.com/tmc/dot"
@@ -15,6 +16,9 @@ type Graph struct {
 	nodes     map[string]*dot.Node
 	subgraphs map[string]*dot.SubGraph
 	dnsToKey  map[string]string // maps domain name to node key
+
+	edgeCount   int
+	rainbowEdge bool
 }
 
 func New(ns string) *Graph {
@@ -24,24 +28,75 @@ func New(ns string) *Graph {
 	_ = g.Set("rankdir", "LR")
 
 	graph := &Graph{
-		Graph:     g,
-		nodes:     make(map[string]*dot.Node),
-		subgraphs: make(map[string]*dot.SubGraph),
-		dnsToKey:  make(map[string]string),
+		Graph:       g,
+		nodes:       make(map[string]*dot.Node),
+		subgraphs:   make(map[string]*dot.SubGraph),
+		dnsToKey:    make(map[string]string),
+		rainbowEdge: true,
 	}
 
 	return graph
 }
 
+func (g *Graph) newEdge(src, dst *dot.Node) *dot.Edge {
+	e := dot.NewEdge(src, dst)
+	if g.rainbowEdge {
+		color := colors[g.edgeCount%len(colors)]
+		_ = e.Set("color", color)
+		g.edgeCount++
+	}
+	return e
+}
+
+func (g *Graph) AddChannel(channel eventingv1alpha1.Channel) {
+	ck := channelKey(channel.Name)
+	dns := addressableDNS(channel.Status.Address)
+	cn := dot.NewNode("Channel " + channel.Name)
+	_ = cn.Set("shape", "oval")
+	_ = cn.Set("label", "Ingress")
+
+	g.nodes[ck] = cn
+	g.dnsToKey[dns] = ck
+
+	cg := dot.NewSubgraph(fmt.Sprintf("cluster_%d", len(g.subgraphs)))
+	_ = cg.Set("label", fmt.Sprintf("Channel %s\n%s", channel.Name, dns))
+	g.subgraphs[ck] = cg
+	cg.AddNode(cn)
+	g.AddSubgraph(cg)
+}
+
+func (g *Graph) AddSubscription(subscription eventingv1alpha1.Subscription) {
+	sk := subscriptionKey(subscription.Name)
+	sn := dot.NewNode("Subscription " + subscription.Name)
+
+	ck := gvkKey(subscription.Spec.Channel.GroupVersionKind(), subscription.Spec.Channel.Name)
+
+	if cg, ok := g.subgraphs[ck]; !ok {
+		g.AddNode(sn)
+	} else {
+		cg.AddNode(sn)
+	}
+	g.nodes[sk] = sn
+
+	if sub := g.getOrCreateSubscriber(subscription.Spec.Subscriber); sub != nil {
+		e := dot.NewEdge(sn, sub)
+		_ = e.Set("dir", "both")
+		g.AddEdge(e)
+	}
+
+	if rep := g.getOrCreateReply(subscription.Spec.Reply); rep != nil {
+		e := g.newEdge(sn, rep)
+		_ = e.Set("dir", "forward")
+		g.AddEdge(e)
+	}
+}
+
 func (g *Graph) AddBroker(broker eventingv1alpha1.Broker) {
 	key := brokerKey(broker.Name)
-	dns := brokerDNS(broker)
+	dns := addressableDNS(broker.Status.Address)
 	bn := dot.NewNode("Broker " + dns)
 	_ = bn.Set("shape", "oval")
 	_ = bn.Set("label", "Ingress")
-
-	//bn.Set("style", "invis")
-	//g.AddNode(bn)
 
 	g.nodes[key] = bn
 	g.dnsToKey[dns] = key
@@ -115,9 +170,9 @@ func (g *Graph) AddTrigger(trigger eventingv1alpha1.Trigger) {
 		_ = tn.Set("label", fmt.Sprintf("%s\n%s", tn.Name(), label))
 	}
 
-	if trigger.Spec.Subscriber != nil {
-		sub := g.getOrCreateSubscriber(trigger.Spec.Subscriber)
+	if sub := g.getOrCreateSubscriber(trigger.Spec.Subscriber); sub != nil {
 		e := dot.NewEdge(tn, sub)
+		_ = e.Set("dir", "both")
 		g.AddEdge(e)
 	}
 }
@@ -175,7 +230,6 @@ func (g *Graph) AddKnService(service servingv1alpha1.Service) {
 			g.AddEdge(e)
 		}
 	}
-
 }
 
 func (g *Graph) getOrCreateSink(uri string) *dot.Node {
@@ -224,6 +278,18 @@ func (g *Graph) getOrCreateSubscriber(subscriber *eventingv1alpha1.SubscriberSpe
 	return sub
 }
 
+func (g *Graph) getOrCreateReply(rep *eventingv1alpha1.ReplyStrategy) *dot.Node {
+	if rep != nil && rep.Channel != nil {
+		ck := channelKey(rep.Channel.Name)
+		if cn, ok := g.nodes[ck]; !ok {
+			cn = dot.NewNode("Unknown Channel " + rep.Channel.Name)
+		} else {
+			return cn
+		}
+	}
+	return nil
+}
+
 func sinkDNS(source duckv1alpha1.SourceType) string {
 	if source.Status.SinkURI != nil {
 		uri := *(source.Status.SinkURI)
@@ -235,12 +301,20 @@ func sinkDNS(source duckv1alpha1.SourceType) string {
 	return ""
 }
 
-func brokerDNS(broker eventingv1alpha1.Broker) string {
-	uri := fmt.Sprintf("http://%s", broker.Status.Address.Hostname)
+func addressableDNS(address knduckv1alpha1.Addressable) string {
+	uri := fmt.Sprintf("http://%s", address.Hostname)
 	if !strings.HasSuffix(uri, "/") {
 		uri += "/"
 	}
 	return uri
+}
+
+func channelKey(name string) string {
+	return eventingKey("channel", name)
+}
+
+func subscriptionKey(name string) string {
+	return eventingKey("subscription", name)
 }
 
 func brokerKey(name string) string {

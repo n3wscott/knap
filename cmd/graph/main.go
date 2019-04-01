@@ -82,8 +82,9 @@ func getQueryParam(r *http.Request, key string) string {
 	return keys[0]
 }
 
-var defaultPage = "html"  // or img
-var defaultFormat = "svg" // or png
+var defaultPage = "html"     // or img
+var defaultFormat = "svg"    // or png
+var defaultFocus = "trigger" // or png
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	page := getQueryParam(r, "page")
@@ -96,7 +97,21 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		format = defaultFormat
 	}
 
-	dotGraph := graph.ForTriggers(client, ns)
+	focus := getQueryParam(r, "focus")
+	if focus == "" {
+		focus = defaultFocus
+	}
+
+	var dotGraph string
+
+	switch focus {
+	case "sub", "subs", "subscription", "subscriptions":
+		dotGraph = graph.ForSubscriptions(client, ns)
+	case "broker", "trigger", "triggers":
+		fallthrough
+	default:
+		dotGraph = graph.ForTriggers(client, ns)
+	}
 
 	file, err := dotToImage(format, []byte(dotGraph))
 	if err != nil {
