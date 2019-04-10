@@ -24,7 +24,6 @@ required = [
   name = "github.com/knative/test-infra"
   non-go = false
 
-
 [[override]]
   name = "github.com/knative/pkg"
   revision = "0f749ef7d5e65aba4e8a76aa34b4744685981a91"

@@ -52,7 +52,10 @@ func (g *Graph) AddChannel(channel eventingv1alpha1.Channel) {
 	ck := channelKey(channel.Name)
 	dns := addressableDNS(channel.Status.Address)
 	cn := dot.NewNode("Channel " + channel.Name)
-	_ = cn.Set("shape", "oval")
+
+	setNodeShapeForKind(cn, channel.Kind, channel.APIVersion)
+
+	_ = cn.Set("shape", "oval") // TODO move to setNodeShapeForKind
 	_ = cn.Set("label", "Ingress")
 
 	g.nodes[ck] = cn
@@ -215,6 +218,10 @@ func (g *Graph) AddKnService(service servingv1alpha1.Service) {
 			service.APIVersion,
 		)
 		svc = dot.NewNode(label)
+		setNodeShapeForKind(svc, service.Kind, service.APIVersion)
+
+		_ = svc.Set("shape", "septagon")
+
 		g.nodes[key] = svc
 		g.AddNode(svc)
 	}
@@ -228,6 +235,15 @@ func (g *Graph) AddKnService(service servingv1alpha1.Service) {
 			target := g.getOrCreateSink(env.Value)
 			e := dot.NewEdge(svc, target)
 			g.AddEdge(e)
+		}
+	}
+}
+
+func setNodeShapeForKind(node *dot.Node, kind, apiVersion string) {
+	if apiVersion == "serving.knative.dev/v1alpha1" {
+		switch kind {
+		case "Service":
+			_ = node.Set("shape", "septagon")
 		}
 	}
 }
@@ -272,6 +288,10 @@ func (g *Graph) getOrCreateSubscriber(subscriber *eventingv1alpha1.SubscriberSpe
 	var ok bool
 	if sub, ok = g.nodes[key]; !ok {
 		sub = dot.NewNode(label)
+		if subscriber != nil && subscriber.Ref != nil {
+			setNodeShapeForKind(sub, subscriber.Ref.Kind, subscriber.Ref.APIVersion)
+		}
+
 		g.nodes[key] = sub
 		g.AddNode(sub)
 	}
