@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/n3wscott/knap/pkg/config"
 	"github.com/n3wscott/knap/pkg/graph"
 	"html/template"
@@ -30,6 +31,14 @@ var (
 	kubeconfig string
 )
 
+type envConfig struct {
+	// Name of this pod.
+	Name string `envconfig:"POD_NAME" required:"true"`
+
+	// Namespace this pod exists in.
+	Namespace string `envconfig:"POD_NAMESPACE" required:"true"`
+}
+
 func init() {
 	flag.StringVar(&cluster, "cluster", "",
 		"Provide the cluster to test against. Defaults to the current cluster in kubeconfig.")
@@ -44,10 +53,15 @@ func init() {
 }
 
 var client dynamic.Interface
-var ns = "default"
+var env envConfig
 
 func main() {
 	flag.Parse()
+
+	if err := envconfig.Process("", &env); err != nil {
+		log.Printf("[ERROR] Failed to process env var: %s", err)
+		os.Exit(1)
+	}
 
 	cfg, err := config.BuildClientConfig(kubeconfig, cluster)
 	if err != nil {
@@ -106,11 +120,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	switch focus {
 	case "sub", "subs", "subscription", "subscriptions":
-		dotGraph = graph.ForSubscriptions(client, ns)
+		dotGraph = graph.ForSubscriptions(client, env.Namespace)
 	case "broker", "trigger", "triggers":
 		fallthrough
 	default:
-		dotGraph = graph.ForTriggers(client, ns)
+		dotGraph = graph.ForTriggers(client, env.Namespace)
 	}
 
 	file, err := dotToImage(format, []byte(dotGraph))
