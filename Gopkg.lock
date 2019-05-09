@@ -204,7 +204,7 @@
   revision = "9bc0e357d17a49aed3cff5697225eb603bcebf97"
 
 [[projects]]
-  digest = "1:aecd0dda966976571ad379663c49cd0505cc7a2dbbe06ddd4664b3b1681f033d"
+  digest = "1:ab3ef1069ebda8d3ef45134446acf5e7cfcd527d6392ee67412d7f2a1749044d"
   name = "github.com/knative/eventing"
   packages = [
     "pkg/apis/duck/v1alpha1",
@@ -212,7 +212,7 @@
     "pkg/apis/eventing/v1alpha1",
   ]
   pruneopts = "NUT"
-  revision = "4a780ee967ce18719d5e9fedaffd80512df123b6"
+  revision = "b437219896ceb21556e42701ac03478b582f8c1f"
 
 [[projects]]
   digest = "1:26f846f42401d12106e677423f081da87c8042c433fa22c27615b91065bb8d90"

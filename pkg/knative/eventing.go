@@ -12,15 +12,11 @@ import (
 )
 
 func (c *Client) Sources(namespace string) []duckv1alpha1.SourceType {
-
 	gvrs := crdsToGVR(c.SourceCRDs())
-
 	all := make([]duckv1alpha1.SourceType, 0)
 
 	for _, gvr := range gvrs {
-
 		like := duckv1alpha1.SourceType{}
-
 		list, err := c.dc.Resource(gvr).Namespace(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			log.Printf("Failed to List %s, %v", gvr.String(), err)
@@ -135,6 +131,33 @@ func (c *Client) Subscriptions(namespace string) []eventingv1alpha1.Subscription
 	}
 
 	all := make([]eventingv1alpha1.Subscription, len(list.Items))
+
+	for i, item := range list.Items {
+		obj := like.DeepCopy()
+		if err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, obj); err != nil {
+			log.Fatalf("Error DefaultUnstructuree.Dynamiconverter. %v", err)
+		}
+		obj.ResourceVersion = gvr.Version
+		obj.APIVersion = gvr.GroupVersion().String()
+		all[i] = *obj
+	}
+	return all
+}
+
+func (c *Client) EventTypes(namespace string) []eventingv1alpha1.EventType {
+	gvr := schema.GroupVersionResource{
+		Group:    "eventing.knative.dev",
+		Version:  "v1alpha1",
+		Resource: "eventtypes",
+	}
+	like := eventingv1alpha1.EventType{}
+
+	list, err := c.dc.Resource(gvr).Namespace(namespace).List(metav1.ListOptions{})
+	if err != nil {
+		log.Fatalf("Failed to List EventTypes, %v", err)
+	}
+
+	all := make([]eventingv1alpha1.EventType, len(list.Items))
 
 	for i, item := range list.Items {
 		obj := like.DeepCopy()

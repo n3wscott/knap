@@ -62,7 +62,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: knap
-    namespace: default
+    namespace: airport
 
 ---
 
@@ -78,3 +78,6 @@ subjects:
   - kind: ServiceAccount
     name: knap
     namespace: default
+  - kind: ServiceAccount
+    name: knap
+    namespace: airport

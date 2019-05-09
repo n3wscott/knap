@@ -30,7 +30,7 @@ required = [
 
 [[override]]
   name = "github.com/knative/eventing"
-  revision = "4a780ee967ce18719d5e9fedaffd80512df123b6"
+  revision = "b437219896ceb21556e42701ac03478b582f8c1f"
 
 [[override]]
   name = "github.com/knative/serving"
