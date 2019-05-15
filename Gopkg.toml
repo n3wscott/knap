@@ -26,7 +26,7 @@ required = [
 
 [[override]]
   name = "github.com/knative/pkg"
-  revision = "0f749ef7d5e65aba4e8a76aa34b4744685981a91"
+  revision = "c3f131538a21eebb1ce00a33051f6f0573deb634"
 
 [[override]]
   name = "github.com/knative/eventing"

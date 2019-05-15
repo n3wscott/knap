@@ -268,9 +268,9 @@ func (g *Graph) getOrCreateSubscriber(subscriber *eventingv1alpha1.SubscriberSpe
 	label := "?"
 
 	if subscriber != nil {
-		if subscriber.DNSName != nil {
-			label = *subscriber.DNSName
-			key = uriKey(*subscriber.DNSName)
+		if subscriber.URI != nil {
+			label = *subscriber.URI
+			key = uriKey(*subscriber.URI)
 		} else if subscriber.Ref != nil {
 			label = fmt.Sprintf("%s\nKind: %s\n%s",
 				subscriber.Ref.Name,

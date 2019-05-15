@@ -32,9 +32,6 @@ var (
 )
 
 type envConfig struct {
-	// Name of this pod.
-	Name string `envconfig:"POD_NAME" required:"true"`
-
 	// Namespace this pod exists in.
 	Namespace string `envconfig:"POD_NAMESPACE" required:"true"`
 }

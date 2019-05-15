@@ -83,18 +83,18 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:d2754cafcab0d22c13541618a8029a70a8959eb3525ff201fe971637e2274cd0"
+  digest = "1:010d46ea3c1e730897e53058d1013a963f3f987675dda87df64f891b945281db"
   name = "github.com/google/go-cmp"
   packages = [
     "cmp",
     "cmp/cmpopts",
     "cmp/internal/diff",
+    "cmp/internal/flags",
     "cmp/internal/function",
     "cmp/internal/value",
   ]
   pruneopts = "NUT"
-  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
-  version = "v0.2.0"
+  revision = "6f77996f0c42f7b84e5a2b252227263f93432e9b"
 
 [[projects]]
   digest = "1:c280fbe00363f7c8db868a738b94df33586ce05c10d26578c3adf544d010eb64"
@@ -215,12 +215,13 @@
   revision = "b437219896ceb21556e42701ac03478b582f8c1f"
 
 [[projects]]
-  digest = "1:26f846f42401d12106e677423f081da87c8042c433fa22c27615b91065bb8d90"
+  digest = "1:326882599ce0d7fa27f58c795070be95685c68e7515d311c2ae3dd632956f300"
   name = "github.com/knative/pkg"
   packages = [
     "apis",
     "apis/duck",
     "apis/duck/v1alpha1",
+    "apis/duck/v1beta1",
     "changeset",
     "configmap",
     "kmeta",
@@ -230,7 +231,7 @@
     "webhook",
   ]
   pruneopts = "NUT"
-  revision = "0f749ef7d5e65aba4e8a76aa34b4744685981a91"
+  revision = "c3f131538a21eebb1ce00a33051f6f0573deb634"
 
 [[projects]]
   digest = "1:7751d3b812cd64ebc8e45a3a7a88e843423297e26d5daeca52f5596ca845ea69"
@@ -304,14 +305,6 @@
   pruneopts = "NUT"
   revision = "5f041e8faa004a95c88a202771f4cc3e991971e6"
   version = "v2.0.1"
-
-[[projects]]
-  digest = "1:14715f705ff5dfe0ffd6571d7d201dd8e921030f8070321a79380d8ca4ec1a24"
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
-  version = "v0.8.1"
 
 [[projects]]
   digest = "1:e09ada96a5a41deda4748b1659cc8953961799e798aea557257b56baee4ecaf3"
